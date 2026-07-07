@@ -25,6 +25,11 @@ def home(request):
             'description': 'Управление уроками',
         },
         {
+            'path': '/api/payments/',
+            'methods_list': ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+            'description': 'Управление платежами (с фильтрацией и сортировкой)',
+        },
+        {
             'path': '/admin/',
             'methods_list': ['GET', 'POST'],
             'description': 'Админ-панель Django',
