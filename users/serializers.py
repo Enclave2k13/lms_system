@@ -46,4 +46,4 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             city=validated_data.get('city'),
             avatar=validated_data.get('avatar'),
         )
-        return user
+        return User.objects.create_user(**validated_data)
