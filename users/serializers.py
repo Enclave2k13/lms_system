@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from users.models import User, Payment
+from users.models import User, Payment, Subscription
 
 
 class PaymentSerializer(serializers.ModelSerializer):
@@ -8,6 +8,14 @@ class PaymentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Payment
+        fields = '__all__'
+
+
+class SubscriptionSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели подписки."""
+
+    class Meta:
+        model = Subscription
         fields = '__all__'
 
 
@@ -46,4 +54,4 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             city=validated_data.get('city'),
             avatar=validated_data.get('avatar'),
         )
-        return User.objects.create_user(**validated_data)
+        return user
