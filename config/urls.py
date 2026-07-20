@@ -30,6 +30,16 @@ def home(request):
             'description': 'Управление платежами (с фильтрацией и сортировкой)',
         },
         {
+            'path': '/api/token/',
+            'methods_list': ['POST'],
+            'description': 'JWT получение пары access/refresh токенов',
+        },
+        {
+            'path': '/api/token/refresh/',
+            'methods_list': ['POST'],
+            'description': 'JWT обновление access токена',
+        },
+        {
             'path': '/admin/',
             'methods_list': ['GET', 'POST'],
             'description': 'Админ-панель Django',
