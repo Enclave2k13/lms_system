@@ -1,15 +1,17 @@
-from rest_framework import viewsets, filters, generics, status
+from rest_framework import viewsets, filters
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from django.shortcuts import get_object_or_404
 
-from users.models import User, Payment
+from materials.models import Course
+from users.models import User, Payment, Subscription
 from users.serializers import (
     UserSerializer,
     UserPublicSerializer,
     UserRegistrationSerializer,
     PaymentSerializer,
 )
-from users.permissions import IsModerator
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -61,3 +63,25 @@ class PaymentViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(payment_method=payment_method)
 
         return queryset
+
+
+class SubscriptionAPIView(APIView):
+    """Эндпоинт для управления подпиской на курс."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, *args, **kwargs):
+        user = self.request.user
+        course_id = self.request.data.get('course_id')
+        course_item = get_object_or_404(Course, pk=course_id)
+
+        subs_item = Subscription.objects.filter(user=user, course=course_item)
+
+        if subs_item.exists():
+            subs_item.delete()
+            message = 'Подписка удалена'
+        else:
+            Subscription.objects.create(user=user, course=course_item)
+            message = 'Подписка добавлена'
+
+        return Response({"message": message})
