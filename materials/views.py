@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from materials.models import Course, Lesson
 from materials.paginators import MaterialsPagination
 from materials.serializers import CourseSerializer, LessonSerializer
+from materials.tasks import send_course_update_email
 from users.permissions import IsModerator, IsOwner
 
 
@@ -22,6 +23,10 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save()
+        send_course_update_email.delay(serializer.instance.pk)
 
     def get_permissions(self):
         if self.action == 'create':

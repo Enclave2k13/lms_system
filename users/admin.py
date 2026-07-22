@@ -14,7 +14,7 @@ class UserAdmin(admin.ModelAdmin):
 class PaymentAdmin(admin.ModelAdmin):
     """Админка для модели платежа."""
 
-    list_display = ('user', 'amount', 'payment_method', 'payment_date', 'paid_course', 'paid_lesson')
+    list_display = ('user', 'course', 'status', 'created_at', 'payment_id')
 
 
 @admin.register(Subscription)

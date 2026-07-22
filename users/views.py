@@ -1,4 +1,4 @@
-from rest_framework import viewsets, filters
+from rest_framework import viewsets, filters, status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -12,6 +12,7 @@ from users.serializers import (
     UserRegistrationSerializer,
     PaymentSerializer,
 )
+from users.services import create_stripe_product, create_stripe_price, create_checkout_session
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -41,28 +42,56 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class PaymentViewSet(viewsets.ModelViewSet):
-    """ViewSet для управления платежами с фильтрацией и сортировкой."""
+    """ViewSet для просмотра платежей с фильтрацией и сортировкой."""
 
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
     filter_backends = [filters.OrderingFilter]
-    ordering_fields = ['payment_date']
-    ordering = ['payment_date']
+    ordering_fields = ['created_at']
+    ordering = ['created_at']
 
     def get_queryset(self):
         queryset = Payment.objects.all()
         course = self.request.query_params.get('course')
-        lesson = self.request.query_params.get('lesson')
-        payment_method = self.request.query_params.get('payment_method')
-
         if course:
-            queryset = queryset.filter(paid_course_id=course)
-        if lesson:
-            queryset = queryset.filter(paid_lesson_id=lesson)
-        if payment_method:
-            queryset = queryset.filter(payment_method=payment_method)
-
+            queryset = queryset.filter(course_id=course)
         return queryset
+
+
+class PaymentCreateView(APIView):
+    """Создание платежа через Stripe."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, *args, **kwargs):
+        user = self.request.user
+        course_id = self.request.data.get('course_id')
+        course = get_object_or_404(Course, pk=course_id)
+
+        try:
+            product_id = create_stripe_product(course)
+            price_id = create_stripe_price(product_id, course.price)
+            session = create_checkout_session(
+                price_id,
+                success_url='http://localhost:8000/success/',
+                cancel_url='http://localhost:8000/cancel/',
+            )
+        except stripe.StripeError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        payment = Payment.objects.create(
+            user=user,
+            course=course,
+            payment_id=session.id,
+            price_id=price_id,
+            payment_url=session.url,
+            status='pending',
+        )
+
+        return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
 
 
 class SubscriptionAPIView(APIView):
