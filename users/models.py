@@ -30,7 +30,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True, verbose_name='Email')
     phone = models.CharField(max_length=35, blank=True, null=True, verbose_name='Телефон')
     city = models.CharField(max_length=100, blank=True, null=True, verbose_name='Город')
-    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, verbose_name='Аватарка')
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, verbose_name='Аватар')
 
     is_active = models.BooleanField(default=True, verbose_name='Активен')
     is_staff = models.BooleanField(default=False, verbose_name='Персонал')
@@ -49,13 +49,12 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class Payment(models.Model):
-    """Модель платежа. Фиксирует оплату курса или урока пользователем."""
+    """Модель платежа через Stripe."""
 
-    CASH = 'cash'
-    TRANSFER = 'transfer'
-    PAYMENT_METHOD_CHOICES = [
-        (CASH, 'Наличные'),
-        (TRANSFER, 'Перевод на счет'),
+    STATUS_CHOICES = [
+        ('pending', 'Ожидает оплаты'),
+        ('paid', 'Оплачен'),
+        ('failed', 'Ошибка оплаты'),
     ]
 
     user = models.ForeignKey(
@@ -64,44 +63,29 @@ class Payment(models.Model):
         related_name='payments',
         verbose_name='Пользователь',
     )
-    payment_date = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Дата оплаты',
-    )
-    paid_course = models.ForeignKey(
+    course = models.ForeignKey(
         Course,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
+        on_delete=models.CASCADE,
         related_name='payments',
-        verbose_name='Оплаченный курс',
+        verbose_name='Курс',
     )
-    paid_lesson = models.ForeignKey(
-        Lesson,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='payments',
-        verbose_name='Оплаченный урок',
-    )
-    amount = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        verbose_name='Сумма оплаты',
-    )
-    payment_method = models.CharField(
+    payment_id = models.CharField(max_length=255, verbose_name='ID сессии Stripe')
+    price_id = models.CharField(max_length=255, verbose_name='ID цены Stripe')
+    payment_url = models.URLField(verbose_name='Ссылка на оплату')
+    status = models.CharField(
         max_length=10,
-        choices=PAYMENT_METHOD_CHOICES,
-        default=TRANSFER,
-        verbose_name='Способ оплаты',
+        choices=STATUS_CHOICES,
+        default='pending',
+        verbose_name='Статус',
     )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
 
     class Meta:
         verbose_name = 'Платеж'
         verbose_name_plural = 'Платежи'
 
     def __str__(self):
-        return f'{self.user} - {self.amount} ({self.get_payment_method_display()})'
+        return f'{self.user} - {self.course} ({self.get_status_display()})'
 
 
 class Subscription(models.Model):
