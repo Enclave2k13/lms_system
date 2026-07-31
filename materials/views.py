@@ -1,3 +1,6 @@
+from datetime import timedelta
+
+from django.utils import timezone
 from rest_framework import viewsets, generics
 from rest_framework.permissions import IsAuthenticated
 
@@ -25,8 +28,14 @@ class CourseViewSet(viewsets.ModelViewSet):
         serializer.save(owner=self.request.user)
 
     def perform_update(self, serializer):
+        course = serializer.instance
+        last_updated_at = course.updated_at
         serializer.save()
-        send_course_update_email.delay(serializer.instance.pk)
+
+        # Уведомление отправляется, только если курс не обновлялся более 4 часов
+        if timezone.now() - last_updated_at < timedelta(hours=4):
+            return
+        send_course_update_email.delay(course.pk)
 
     def get_permissions(self):
         if self.action == 'create':
@@ -76,6 +85,20 @@ class LessonRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         if user.groups.filter(name='moderators').exists():
             return Lesson.objects.all()
         return Lesson.objects.filter(owner=user)
+
+    def perform_update(self, serializer):
+        lesson = serializer.instance
+        course = lesson.course
+        last_updated_at = course.updated_at
+        serializer.save()
+
+        # Обновление урока считается обновлением курса
+        Course.objects.filter(pk=course.pk).update(updated_at=timezone.now())
+
+        # Уведомление отправляется, только если курс не обновлялся более 4 часов
+        if timezone.now() - last_updated_at < timedelta(hours=4):
+            return
+        send_course_update_email.delay(course.pk)
 
     def get_permissions(self):
         if self.request.method == 'DELETE':

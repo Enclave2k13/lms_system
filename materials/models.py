@@ -18,6 +18,7 @@ class Course(models.Model):
     preview = models.ImageField(upload_to='course_previews/', blank=True, null=True, verbose_name='Превью')
     description = models.TextField(blank=True, null=True, verbose_name='Описание')
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='Цена')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата последнего обновления')
 
     class Meta:
         verbose_name = 'Курс'
