@@ -7,6 +7,7 @@ djangorestframework==3.17.1
 djangorestframework-simplejwt==5.5.1
 drf-yasg==1.21.15
 pillow==12.2.0
+psycopg[binary]==3.3.4
 python-dotenv==1.2.2
 redis==6.2.0
 sqlparse==0.5.5
