@@ -1,8 +1,12 @@
+from datetime import timedelta
+
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
 
 from materials.models import Course
 from users.models import User, Subscription
+from users.tasks import block_inactive_users
 
 
 class UsersEndpointTest(APITestCase):
@@ -67,3 +71,24 @@ class SubscriptionEndpointTest(APITestCase):
         self.client.post('/api/subscription/', {'course_id': self.course.pk})
         response = self.client.get(f'/api/courses/{self.course.pk}/')
         self.assertTrue(response.data['is_subscribed'])
+
+
+class BlockInactiveUsersTaskTest(APITestCase):
+    """Тесты периодической задачи блокировки неактивных пользователей."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.inactive = User.objects.create_user(email='inactive@test.com', password='pass123')
+        self.recent = User.objects.create_user(email='recent@test.com', password='pass123')
+
+    def test_blocks_user_inactive_over_month(self):
+        User.objects.filter(pk=self.inactive.pk).update(last_login=timezone.now() - timedelta(days=31))
+        block_inactive_users()
+        self.inactive.refresh_from_db()
+        self.assertFalse(self.inactive.is_active)
+
+    def test_keeps_user_with_recent_login(self):
+        User.objects.filter(pk=self.recent.pk).update(last_login=timezone.now() - timedelta(days=5))
+        block_inactive_users()
+        self.recent.refresh_from_db()
+        self.assertTrue(self.recent.is_active)
