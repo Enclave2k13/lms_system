@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:16
-    restart: on-failure
+    restart: unless-stopped
     env_file:
       - .env
     volumes:
@@ -16,7 +16,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    restart: on-failure
+    restart: unless-stopped
     volumes:
       - redis_data:/data
     expose:
@@ -29,31 +29,42 @@ services:
 
   web:
     build: .
-    restart: on-failure
+    restart: unless-stopped
     command: >
       sh -c "python manage.py migrate --noinput &&
-             python manage.py runserver 0.0.0.0:8000"
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4"
     env_file:
       - .env
     volumes:
-      - .:/app
+      - static_data:/app/staticfiles
       - media_data:/app/media
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
 
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - static_data:/app/staticfiles
+      - media_data:/app/media
+    depends_on:
+      - web
+
   celery_worker:
     build: .
-    restart: on-failure
+    restart: unless-stopped
     command: celery -A config worker -l info
     env_file:
       - .env
     volumes:
-      - .:/app
       - media_data:/app/media
     depends_on:
       db:
@@ -63,12 +74,10 @@ services:
 
   celery_beat:
     build: .
-    restart: on-failure
+    restart: unless-stopped
     command: celery -A config beat -l info
     env_file:
       - .env
-    volumes:
-      - .:/app
     depends_on:
       db:
         condition: service_healthy
@@ -78,4 +87,5 @@ services:
 volumes:
   pg_data:
   redis_data:
+  static_data:
   media_data:
