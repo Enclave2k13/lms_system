@@ -13,3 +13,4 @@ redis==6.2.0
 sqlparse==0.5.5
 stripe==10.0.0
 tzdata==2026.2
+gunicorn==23.0.0

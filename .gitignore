@@ -9,6 +9,7 @@ __pycache__/
 *.pyo
 db.sqlite3
 media/
+staticfiles/
 
 # Celery
 celerybeat-schedule
@@ -17,11 +18,16 @@ celerybeat-schedule-*
 # Environment
 .env
 
+# SSH keys
+123
+123.pub
+
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
+main.py
 
 # OS
 .DS_Store

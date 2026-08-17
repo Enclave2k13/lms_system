@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 
-from materials.models import Course, Lesson
+from materials.models import Course
 
 
 class UserManager(BaseUserManager):
