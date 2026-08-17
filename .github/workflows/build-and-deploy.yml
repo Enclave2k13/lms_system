@@ -73,11 +73,14 @@ jobs:
           python-version: "3.13"
           cache: "pip"
 
-      - name: Install flake8
-        run: pip install flake8
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8
+          pip install -r requirements.txt
 
       - name: Run flake8
-        run: flake8 . --max-line-length=120 --exclude=venv,.venv,env,migrations
+        run: flake8 . --max-line-length=120 --exclude=venv,.venv,env,migrations,__pycache__
 
   build:
     needs: lint
@@ -104,7 +107,7 @@ jobs:
           script: |
             cd /opt/lms_system
             git pull origin main
-            docker compose down
-            docker compose up -d --build
-            docker compose exec web python manage.py migrate --noinput
-            docker compose exec web python manage.py collectstatic --noinput
+            docker-compose down
+            docker-compose up -d --build
+            docker-compose exec web python manage.py migrate --noinput
+            docker-compose exec web python manage.py collectstatic --noinput
